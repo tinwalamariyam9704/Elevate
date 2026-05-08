@@ -1,0 +1,74 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile containing basic info and career type.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "userType": { "type": "string", "enum": ["student", "professional", "job-seeker"] },
+        "onboardingCompleted": { "type": "boolean" },
+        "interests": { "type": "array", "items": { "type": "string" } },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email"]
+    },
+    "Assessment": {
+      "title": "Assessment",
+      "description": "User's assessment results and data.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "answers": { "type": "object" },
+        "results": { "type": "object" },
+        "suggestedCareers": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "answers"]
+    },
+    "CareerPath": {
+      "title": "CareerPath",
+      "description": "Detailed roadmap for a specific career.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "object" } },
+        "requiredSkills": { "type": "array", "items": { "type": "string" } },
+        "futureProofScore": { "type": "number" },
+        "aiImpactAnalysis": { "type": "string" }
+      },
+      "required": ["name", "steps"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A single message in the AI chat history.",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["role", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Primary user profile data."
+    },
+    "/users/{userId}/assessments/{assessmentId}": {
+      "schema": "Assessment",
+      "description": "User's past career assessments."
+    },
+    "/users/{userId}/chats/{chatId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Chat history for AI career coaching sessions."
+    }
+  }
+}
