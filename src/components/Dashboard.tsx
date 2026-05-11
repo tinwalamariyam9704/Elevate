@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '../context/UserContext';
-import { getCareerSuggestions, getDetailedRoadmap } from '../services/gemini';
+import { 
+  getCareerSuggestions, 
+  getDetailedRoadmap, 
+  analyzeResume, 
+  getInterviewSession, 
+  getInterviewFeedback, 
+  getJobRecommendations 
+} from '../services/gemini';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
@@ -23,7 +30,12 @@ import {
   GraduationCap,
   Clock,
   Search,
-  ArrowRight
+  ArrowRight,
+  FileText,
+  Video,
+  ExternalLink,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import ChatBot from './ChatBot';
@@ -41,6 +53,23 @@ export default function Dashboard() {
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState("roadmap");
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Resume State
+  const [resumeText, setResumeText] = useState("");
+  const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
+  const [analyzingResume, setAnalyzingResume] = useState(false);
+
+  // Interview State
+  const [interviewQuestions, setInterviewQuestions] = useState<any[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState("");
+  const [interviewFeedback, setInterviewFeedback] = useState<any>(null);
+  const [loadingInterview, setLoadingInterview] = useState(false);
+  const [submittingAnswer, setSubmittingAnswer] = useState(false);
+
+  // Jobs State
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(false);
 
   useEffect(() => {
     if (activeSuggestion && scrollRef.current) {
@@ -195,6 +224,72 @@ export default function Dashboard() {
       });
     } catch (err) {
       console.error("Failed to update progress:", err);
+    }
+  };
+
+  const handleAnalyzeResume = async () => {
+    if (!resumeText.trim() || !activeSuggestion) return;
+    setAnalyzingResume(true);
+    setResumeAnalysis(null);
+    try {
+      const result = await analyzeResume(resumeText, activeSuggestion.name);
+      setResumeAnalysis(result);
+    } catch (err) {
+      console.error(err);
+      setError("Resume analysis failed. Please try again.");
+    } finally {
+      setAnalyzingResume(false);
+    }
+  };
+
+  const handleStartInterview = async () => {
+    if (!activeSuggestion) return;
+    setLoadingInterview(true);
+    setInterviewQuestions([]);
+    setInterviewFeedback(null);
+    setCurrentQuestionIndex(0);
+    setUserAnswer("");
+    try {
+      const questions = await getInterviewSession(activeSuggestion.name);
+      setInterviewQuestions(questions);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to start interview session.");
+    } finally {
+      setLoadingInterview(false);
+    }
+  };
+
+  const handleSubmitAnswer = async () => {
+    if (!userAnswer.trim() || !interviewQuestions[currentQuestionIndex]) return;
+    setSubmittingAnswer(true);
+    setInterviewFeedback(null);
+    try {
+      const feedback = await getInterviewFeedback(
+        interviewQuestions[currentQuestionIndex].question,
+        userAnswer,
+        activeSuggestion.name
+      );
+      setInterviewFeedback(feedback);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to get feedback.");
+    } finally {
+      setSubmittingAnswer(false);
+    }
+  };
+
+  const handleFetchJobs = async () => {
+    if (!activeSuggestion) return;
+    setLoadingJobs(true);
+    try {
+      const results = await getJobRecommendations(profile, activeSuggestion.name);
+      setJobs(results);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch opportunities.");
+    } finally {
+      setLoadingJobs(false);
     }
   };
 
@@ -443,7 +538,10 @@ export default function Dashboard() {
                       { id: 'roadmap', label: 'Roadmap', icon: Map },
                       { id: 'projects', label: 'Projects', icon: Compass },
                       { id: 'certifications', label: 'Certification', icon: GraduationCap },
-                      { id: 'ai-impact', label: 'AI Risk', icon: BrainCircuit }
+                      { id: 'ai-impact', label: 'AI Risk', icon: BrainCircuit },
+                      { id: 'resume', label: 'Resume Studio', icon: FileText },
+                      { id: 'interview', label: 'Interview AI', icon: Video },
+                      { id: 'jobs', label: 'Job Pool', icon: ExternalLink }
                     ].map(tab => (
                       <TabsTrigger 
                         key={tab.id}
@@ -635,6 +733,292 @@ export default function Dashboard() {
                           {activeSuggestion.aiImpactAnalysis}
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="resume" className="mt-0 outline-none">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                      <div className="p-8 rounded-[2rem] bg-slate-50 border border-slate-100">
+                        <h4 className="text-xl font-display font-black mb-4 uppercase tracking-tight">Professional Forensic Audit</h4>
+                        <p className="text-sm text-slate-500 mb-6">Paste your resume content below. Elevate will audit your experience against global market standards for the {activeSuggestion.name} role.</p>
+                        
+                        <textarea 
+                          value={resumeText}
+                          onChange={(e) => setResumeText(e.target.value)}
+                          placeholder="Paste resume text here..."
+                          className="w-full h-64 p-6 bg-white border border-slate-200 rounded-3xl text-sm font-medium focus:ring-4 focus:ring-brand-accent/5 focus:outline-none transition-all resize-none"
+                        />
+                        <Button 
+                          onClick={handleAnalyzeResume}
+                          disabled={analyzingResume || !resumeText.trim()}
+                          className="w-full mt-6 py-6 rounded-2xl font-black uppercase tracking-widest text-xs bg-slate-900"
+                        >
+                          {analyzingResume ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                              Running Forensic Audit...
+                            </div>
+                          ) : "Execute Deep Audit"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      {resumeAnalysis ? (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="space-y-6"
+                        >
+                          <div className="grid grid-cols-3 gap-4">
+                            {[
+                              { label: 'Formatting', score: resumeAnalysis.scores.formatting },
+                              { label: 'Impact', score: resumeAnalysis.scores.content },
+                              { label: 'Alignment', score: resumeAnalysis.scores.overall }
+                            ].map(s => (
+                              <div key={s.label} className="p-4 rounded-2xl bg-white border border-slate-100 text-center">
+                                <div className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{s.label}</div>
+                                <div className="text-xl font-display font-black text-brand-accent">{s.score}%</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="p-8 rounded-[2rem] bg-emerald-500/[0.03] border border-emerald-500/10">
+                            <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-4 flex items-center gap-2">
+                              <Check className="w-3 h-3" /> Targeted Enhancements
+                            </h5>
+                            <div className="space-y-3">
+                              {resumeAnalysis.improvements.map((imp: string, i: number) => (
+                                <div key={i} className="flex gap-3 text-sm font-medium text-slate-700">
+                                  <div className="mt-1 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                  {imp}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="p-8 rounded-[2rem] bg-brand-accent/[0.03] border border-brand-accent/10">
+                            <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-accent mb-4 flex items-center gap-2">
+                              <AlertCircle className="w-3 h-3" /> Skill Discrepancies
+                            </h5>
+                            <div className="flex flex-wrap gap-2">
+                              {resumeAnalysis.skillGaps.map((gap: string) => (
+                                <Badge key={gap} variant="secondary" className="bg-white text-slate-600 border border-slate-100 px-3 py-1 font-bold text-[10px] uppercase tracking-widest">
+                                  {gap}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="p-8 rounded-[2rem] bg-slate-900 text-white">
+                             <div className="text-[9px] font-black uppercase tracking-[0.3em] mb-2 text-brand-accent">AI Resilience Verdict</div>
+                             <p className="text-sm font-light leading-relaxed opacity-80">{resumeAnalysis.aiResilienceCheck}</p>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center p-12 bg-slate-50 border border-dashed border-slate-200 rounded-[2.5rem] text-center">
+                          <FileText className="w-12 h-12 text-slate-200 mb-4" />
+                          <p className="text-slate-400 font-medium">Input your resume to unlock real-time forensic grading and skill gap mapping.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="interview" className="mt-0 outline-none">
+                  <div className="max-w-3xl mx-auto">
+                    {interviewQuestions.length === 0 ? (
+                      <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+                        <div className="p-6 bg-white rounded-full w-fit mx-auto mb-6 shadow-sm">
+                          <Video className="w-8 h-8 text-brand-accent" />
+                        </div>
+                        <h4 className="text-2xl font-display font-black mb-3">Interview Studio</h4>
+                        <p className="text-slate-500 mb-10 max-w-sm mx-auto">Generate industry-standard technical and behavioral questions tailored for the {activeSuggestion.name} position.</p>
+                        <Button 
+                          onClick={handleStartInterview}
+                          disabled={loadingInterview}
+                          className="bg-slate-900 h-14 px-12 rounded-2xl font-black uppercase tracking-widest text-xs"
+                        >
+                          {loadingInterview ? "Synchronising Sessions..." : "Initialize Interview AI"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-8">
+                        <div className="flex justify-between items-center bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                          <div className="flex items-center gap-4">
+                            <Badge className="bg-brand-accent/10 text-brand-accent border-none px-3 font-black uppercase text-[10px] tracking-widest">
+                              Question {currentQuestionIndex + 1} of {interviewQuestions.length}
+                            </Badge>
+                          </div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            Category: {interviewQuestions[currentQuestionIndex].category}
+                          </div>
+                        </div>
+
+                        <motion.div 
+                          key={currentQuestionIndex}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="p-10 bg-white border border-slate-100 rounded-[2.5rem] shadow-xl shadow-slate-200/20"
+                        >
+                          <h3 className="text-2xl font-display font-black mb-8 leading-tight text-slate-900">
+                            "{interviewQuestions[currentQuestionIndex].question}"
+                          </h3>
+                          
+                          <textarea 
+                            value={userAnswer}
+                            onChange={(e) => setUserAnswer(e.target.value)}
+                            placeholder="Type or record your answer..."
+                            className="w-full h-40 p-6 bg-slate-50 border-none rounded-[1.5rem] text-sm font-medium focus:ring-4 focus:ring-brand-accent/5 focus:outline-none transition-all mb-6"
+                          />
+
+                          <div className="flex justify-between gap-4">
+                             <Button 
+                              variant="outline"
+                              onClick={() => {
+                                setUserAnswer("");
+                                setInterviewFeedback(null);
+                                setCurrentQuestionIndex(prev => (prev + 1) % interviewQuestions.length);
+                              }}
+                              className="h-12 px-8 rounded-xl font-black uppercase tracking-widest text-[9px] border-slate-200"
+                             >
+                                Skip Question
+                             </Button>
+                             <Button 
+                              onClick={handleSubmitAnswer}
+                              disabled={submittingAnswer || !userAnswer.trim()}
+                              className="h-12 px-8 rounded-xl font-black uppercase tracking-widest text-[9px] bg-brand-accent shadow-lg shadow-brand-accent/20"
+                             >
+                               {submittingAnswer ? "Analyzing..." : "Review Answer"}
+                             </Button>
+                          </div>
+                        </motion.div>
+
+                        {interviewFeedback && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-10 rounded-[2.5rem] bg-slate-900 text-white"
+                          >
+                            <div className="flex justify-between items-start mb-8">
+                              <div>
+                                <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-accent mb-2">Performance Audit</h4>
+                                <div className="text-4xl font-display font-black">{interviewFeedback.score}/10</div>
+                              </div>
+                              <Button 
+                                onClick={() => {
+                                  setUserAnswer("");
+                                  setInterviewFeedback(null);
+                                  setCurrentQuestionIndex(prev => (prev + 1) % interviewQuestions.length);
+                                }}
+                                className="bg-white/10 hover:bg-white text-white hover:text-slate-900 rounded-xl h-10 px-4 font-black uppercase text-[9px]"
+                              >
+                                Next Question <ArrowRight className="ml-2 w-3 h-3" />
+                              </Button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                               <div>
+                                  <div className="text-[10px] font-black uppercase text-emerald-400 tracking-widest mb-4">Strengths</div>
+                                  <ul className="space-y-3">
+                                    {interviewFeedback.strengths.map((s: string, i: number) => (
+                                      <li key={i} className="text-sm font-medium opacity-80 flex gap-2">
+                                        <Check className="w-4 h-4 text-emerald-400 shrink-0" /> {s}
+                                      </li>
+                                    ))}
+                                  </ul>
+                               </div>
+                               <div>
+                                  <div className="text-[10px] font-black uppercase text-brand-accent tracking-widest mb-4">Refinement Required</div>
+                                  <ul className="space-y-3">
+                                    {interviewFeedback.weaknesses.map((w: string, i: number) => (
+                                      <li key={i} className="text-sm font-medium opacity-80 flex gap-2">
+                                        <AlertCircle className="w-4 h-4 text-brand-accent shrink-0" /> {w}
+                                      </li>
+                                    ))}
+                                  </ul>
+                               </div>
+                            </div>
+
+                            <div className="mt-10 p-6 bg-white/5 rounded-2xl border border-white/10">
+                               <div className="text-[9px] font-black uppercase tracking-widest mb-3 text-brand-accent">Optimized Strategic Response</div>
+                               <p className="text-sm font-light italic opacity-70 leading-relaxed">
+                                 {interviewFeedback.refinedAnswer}
+                               </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="jobs" className="mt-0 outline-none">
+                  <div>
+                    <div className="flex justify-between items-center mb-10">
+                      <div>
+                        <h4 className="text-3xl font-display font-black tracking-tight text-slate-900">Opportunity Ecosystem</h4>
+                        <p className="text-slate-500 font-medium capitalize">Recommended placements for {activeSuggestion.name} trajectories.</p>
+                      </div>
+                      <Button 
+                        onClick={handleFetchJobs}
+                        disabled={loadingJobs}
+                        className="bg-brand-accent text-white h-12 px-8 rounded-xl font-black uppercase tracking-widest text-[10px]"
+                      >
+                        {loadingJobs ? "Synchronising Live Listings..." : "Sync Global Job Pool"}
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {jobs.map((job: any, i: number) => (
+                        <motion.div 
+                          key={i}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="p-8 rounded-[2.5rem] bg-white border border-slate-100 hover:border-brand-accent/20 transition-all group shadow-sm hover:shadow-xl hover:shadow-brand-accent/5"
+                        >
+                          <div className="flex justify-between items-start mb-6">
+                             <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-brand-accent group-hover:text-white transition-colors duration-500">
+                                <Briefcase className="w-6 h-6" />
+                             </div>
+                             <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] tracking-widest px-3 py-1 rounded-lg">
+                               Live Listing
+                             </Badge>
+                          </div>
+                          <h5 className="text-2xl font-display font-black mb-1 group-hover:text-brand-accent transition-colors tracking-tight uppercase">{job.title}</h5>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">{job.companyType}</p>
+                          
+                          <div className="flex items-center gap-6 mb-8">
+                             <div className="flex flex-col">
+                               <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">Cap Allocation</span>
+                               <span className="text-sm font-bold text-slate-700">{job.salaryRange}</span>
+                             </div>
+                             <div className="w-px h-8 bg-slate-100" />
+                             <div className="flex flex-col">
+                               <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">Location Strategy</span>
+                               <span className="text-sm font-bold text-slate-700">Remote/Hybird</span>
+                             </div>
+                          </div>
+
+                          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-500 font-medium leading-relaxed italic">
+                             "{job.whyMatch}"
+                          </div>
+
+                          <Button className="w-full mt-8 py-6 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 group">
+                             Execute Application <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
+                        </motion.div>
+                      ))}
+
+                      {jobs.length === 0 && !loadingJobs && (
+                        <div className="col-span-2 py-32 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+                          <Compass className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                          <p className="text-slate-400 font-medium">Initialize the job pool to see recommended strategic opportunities.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </TabsContent>

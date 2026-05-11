@@ -148,6 +148,149 @@ export async function getDetailedRoadmap(careerName: string, userContext: any) {
   });
 }
 
+export async function analyzeResume(resumeText: string, targetRole: string) {
+  return handleGeminiResponse(async () => {
+    const response = await ai.models.generateContent({
+      model: MODELS.FLASH,
+      contents: `Analyze this resume text for the target role: "${targetRole}".
+      
+      Resume Text:
+      ${resumeText}
+      
+      Provide a comprehensive audit including:
+      1. Formatting score (0-100).
+      2. Content impact score (0-100).
+      3. Critical missing keywords for the target role.
+      4. Skill gaps (skills the user lacks but are vital for the role).
+      5. 3 specific, actionable improvements for their bullet points.
+      6. A summary of how "AI-Resilient" their experience appears.
+      
+      Return valid JSON.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            scores: {
+              type: Type.OBJECT,
+              properties: {
+                formatting: { type: Type.NUMBER },
+                content: { type: Type.NUMBER },
+                overall: { type: Type.NUMBER }
+              }
+            },
+            missingKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+            skillGaps: { type: Type.ARRAY, items: { type: Type.STRING } },
+            improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
+            aiResilienceCheck: { type: Type.STRING }
+          },
+          required: ["scores", "missingKeywords", "skillGaps", "improvements", "aiResilienceCheck"]
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "{}");
+  });
+}
+
+export async function getInterviewSession(role: string, level: string = "mid-level") {
+  return handleGeminiResponse(async () => {
+    const response = await ai.models.generateContent({
+      model: MODELS.FLASH,
+      contents: `Generate 5 challenging, unique, and industry-standard interview questions for a ${level} "${role}" position. 
+      Include 2 technical/domain-specific and 3 behavioral questions.
+      
+      Return as JSON.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.NUMBER },
+              question: { type: Type.STRING },
+              intent: { type: Type.STRING },
+              category: { type: Type.STRING }
+            }
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "[]");
+  });
+}
+
+export async function getInterviewFeedback(question: string, answer: string, role: string) {
+  return handleGeminiResponse(async () => {
+    const response = await ai.models.generateContent({
+      model: MODELS.FLASH,
+      contents: `As an elite hiring manager for a ${role} position, evaluate this interview response.
+      
+      Question: "${question}"
+      Answer: "${answer}"
+      
+      Provide:
+      1. Score (0-10)
+      2. Strengths of the answer.
+      3. Weaknesses/Gaps.
+      4. A "Refined Response" sample that they should aim for.
+      
+      Return JSON.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            score: { type: Type.NUMBER },
+            strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+            weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+            refinedAnswer: { type: Type.STRING }
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "{}");
+  });
+}
+
+export async function getJobRecommendations(profile: any, currentPath: string) {
+  return handleGeminiResponse(async () => {
+    const response = await ai.models.generateContent({
+      model: MODELS.FLASH,
+      contents: `Suggest 4-5 specific job titles or niche opportunities for a user interested in "${currentPath}".
+      User Profile: ${JSON.stringify(profile)}
+      
+      For each, include:
+      - title: Job Title
+      - companyType: Type of companies hiring (e.g., "SaaS Startups", "Fortune 500", "NGOs")
+      - salaryRange: Expected pay
+      - whyMatch: Why this fits their profile.
+      
+      Return JSON.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              companyType: { type: Type.STRING },
+              salaryRange: { type: Type.STRING },
+              whyMatch: { type: Type.STRING }
+            }
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "[]");
+  });
+}
+
 export async function chatWithCareerCoach(messages: any[], context?: any) {
   return handleGeminiResponse(async () => {
     const userContextStr = context ? `\nUser Context: ${JSON.stringify(context)}` : "";

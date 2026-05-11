@@ -14,30 +14,30 @@ import { Progress } from './ui/progress';
 const QUESTIONS = [
   {
     id: 'type',
-    question: "Establish your professional identity.",
+    question: "Tell us about yourself.",
     options: [
-      { value: 'student', label: 'Emerging Talent', desc: 'Synthesizing global knowledge for first-tier entry' },
-      { value: 'professional', label: 'Industry Veteran', desc: 'Refining trajectory for elite growth and AI resilience' },
-      { value: 'job-seeker', label: 'Strategic Pivot', desc: 'Executing a transition into high-yield industries' }
+      { value: 'student', label: 'Student', desc: 'Starting your career and looking for the right path' },
+      { value: 'professional', label: 'Working Professional', desc: 'Looking to grow, switch, or advance in your field' },
+      { value: 'job-seeker', label: 'Job Seeker', desc: 'Actively searching for a new job or role' }
     ]
   },
   {
     id: 'primary_domain',
-    question: "Identify your primary ecosystem.",
+    question: "Which field interests you most?",
     options: [
-      { value: 'technology', label: 'Deep Tech & Infrastructure', desc: 'Digital architecture and planetary-scale systems' },
-      { value: 'creative', label: 'Creative Leadership', desc: 'Visual narratives and high-value design strategy' },
-      { value: 'business', label: 'Operations & Global Finance', desc: 'Management, venture capital, and market scaling' },
-      { value: 'humanities', label: 'Human Lifecycle & Ethics', desc: 'Medicine, psychology, and social evolution' }
+      { value: 'technology', label: 'Technology', desc: 'Software, IT, engineering, and digital systems' },
+      { value: 'creative', label: 'Creative', desc: 'Design, arts, writing, and media' },
+      { value: 'business', label: 'Business', desc: 'Management, finance, sales, and marketing' },
+      { value: 'humanities', label: 'Healthcare & Society', desc: 'Medicine, teaching, and social work' }
     ]
   },
   {
     id: 'interest_impact',
-    question: "What is your preferred mode of problem solving?",
+    question: "How do you prefer to solve problems?",
     options: [
-      { value: 'creation', label: 'Generative Construction', desc: 'Building something new where nothing existed' },
-      { value: 'optimization', label: 'Systems Optimization', desc: 'Making existing things faster and better' },
-      { value: 'empathy', label: 'Empathetic Connection', desc: 'Solving problems through human understanding' }
+      { value: 'creation', label: 'Building things', desc: 'Creating new products, apps, or services' },
+      { value: 'optimization', label: 'Improving things', desc: 'Making existing systems better and more efficient' },
+      { value: 'empathy', label: 'Helping others', desc: 'Solving problems through understanding and care' }
     ]
   },
   {
@@ -143,25 +143,31 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 bg-[#0B0F1A] text-white relative overflow-hidden">
-      {/* Decorative Elements */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand-accent blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand-accent blur-[120px]" />
+    <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
+      {/* Soft background accents */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
+        <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-brand-accent/5 blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-brand-accent/5 blur-[120px]" />
       </div>
 
-      <div className="w-full max-w-4xl relative z-10">
-        <div className="mb-16 text-center">
-          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-6 border border-white/10">
-            <Target className="w-3.5 h-3.5 text-brand-accent" />
-            <span>Strategic Calibration // Stage {step + 1}</span>
+      <div className="w-full max-w-5xl relative z-10">
+        <div className="mb-12 text-center">
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white text-slate-500 text-[11px] font-bold uppercase tracking-widest mb-8 shadow-sm border border-slate-100">
+            <Target className="w-4 h-4 text-brand-accent" />
+            <span>Step {step + 1} of {QUESTIONS.length}: Profile Setup</span>
           </div>
-          <div className="w-full h-1 bg-white/10 rounded-full mb-4 overflow-hidden">
-             <motion.div 
-               initial={{ width: 0 }}
-               animate={{ width: `${progress}%` }}
-               className="h-full bg-brand-accent shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-             />
+          
+          <div className="max-w-md mx-auto mb-16">
+            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+               <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ width: `${progress}%` }}
+                 className="h-full bg-brand-accent shadow-[0_0_10px_rgba(99,102,241,0.3)]"
+               />
+            </div>
+            <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+              {step === 0 ? "Tell us who you are" : step === 1 ? "What field are you in?" : "How do you work?"}
+            </p>
           </div>
         </div>
 
@@ -172,66 +178,84 @@ export default function Onboarding() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <h2 className="text-5xl md:text-6xl font-display font-black mb-12 text-center tracking-tighter leading-tight">{currentQuestion.question}</h2>
+              <h2 className="text-4xl md:text-5xl font-display font-black mb-12 text-center tracking-tight text-slate-900 balance">
+                {currentQuestion.question}
+              </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {currentQuestion.options.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleSelect(opt.value)}
-                    className={`flex flex-col gap-6 p-10 text-left rounded-[2.5rem] border-2 transition-all duration-500 group relative overflow-hidden ${
+                    className={`flex flex-col gap-8 p-10 text-left rounded-[2rem] border-2 transition-all duration-500 group relative ${
                       answers[currentQuestion.id] === opt.value 
-                      ? 'border-brand-accent bg-brand-accent/10 shadow-2xl shadow-brand-accent/20' 
-                      : 'border-white/5 bg-white/5 hover:border-white/20'
+                      ? 'border-brand-accent bg-white shadow-2xl shadow-brand-accent/10 ring-4 ring-brand-accent/5' 
+                      : 'border-white bg-white/60 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 border-slate-100/50'
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-500 ${
+                    <div className={`w-12 h-12 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all duration-500 ${
                       answers[currentQuestion.id] === opt.value 
-                      ? 'border-brand-accent bg-brand-accent text-white scale-110' 
-                      : 'border-white/20'
+                      ? 'border-brand-accent bg-brand-accent text-white rotate-6' 
+                      : 'border-slate-100 bg-slate-50 text-slate-300 group-hover:border-brand-accent/30 group-hover:text-brand-accent'
                     }`}>
-                      {answers[currentQuestion.id] === opt.value ? <CheckCircle2 className="w-5 h-5" /> : <div className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-brand-accent transition-colors" />}
+                      {answers[currentQuestion.id] === opt.value ? <CheckCircle2 className="w-6 h-6" /> : <div className="w-2 h-2 rounded-full bg-current" />}
                     </div>
                     <div>
-                      <p className="font-display font-black text-xl mb-3 tracking-tight group-hover:text-brand-accent transition-colors">{opt.label}</p>
-                      <p className="text-sm text-white/40 leading-relaxed font-medium">{opt.desc}</p>
+                      <p className="font-display font-bold text-2xl mb-3 tracking-tight text-slate-900">{opt.label}</p>
+                      <p className="text-sm text-slate-500 leading-relaxed font-medium">{opt.desc}</p>
                     </div>
+                    {answers[currentQuestion.id] === opt.value && (
+                      <motion.div 
+                        layoutId="active-check"
+                        className="absolute top-6 right-6"
+                      >
+                         <div className="w-2 h-2 rounded-full bg-brand-accent animate-ping" />
+                      </motion.div>
+                    )}
                   </button>
                 ))}
               </div>
             </motion.div>
           ) : (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-20 text-center"
+              className="flex flex-col items-center justify-center py-24 text-center"
             >
-              <div className="w-24 h-24 border-4 border-white/5 border-t-brand-accent rounded-full animate-spin mb-10 shadow-[0_0_50px_rgba(99,102,241,0.2)]" />
-              <h2 className="text-4xl font-display font-black mb-4 tracking-tighter">Calculating Trajectories...</h2>
-              <p className="text-white/40 font-medium max-w-sm">Synthesizing market data and global talent pools to define your unique professional pivot.</p>
+              <div className="relative w-32 h-32 mb-12">
+                <div className="absolute inset-0 border-4 border-slate-100 rounded-full" />
+                <div className="absolute inset-0 border-4 border-brand-accent rounded-full border-t-transparent animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Sparkles className="w-10 h-10 text-brand-accent animate-pulse" />
+                </div>
+              </div>
+              <h2 className="text-4xl font-display font-black mb-4 tracking-tight text-slate-900">Creating Your Career Guide</h2>
+              <p className="text-slate-500 font-medium max-w-sm leading-relaxed">
+                We are finding the best career paths for you based on your background and interests.
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
 
         {!computing && (
-          <div className="mt-20 flex justify-between items-center border-t border-white/5 pt-10">
+          <div className="mt-20 flex justify-between items-center border-t border-slate-200 pt-10">
             <Button 
               variant="ghost" 
               onClick={() => setStep(Math.max(0, step - 1))}
               disabled={step === 0}
-              className="rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase tracking-widest text-[10px] h-12 px-8"
+              className="rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 font-bold uppercase tracking-widest text-[10px] h-12 px-8"
             >
-              <ArrowLeft className="mr-3 w-4 h-4" /> Previous Phase
+              <ArrowLeft className="mr-3 w-4 h-4" /> Previous
             </Button>
 
             {step === QUESTIONS.length - 1 && answers[currentQuestion.id] && (
               <Button 
                 onClick={handleFinish} 
-                className="bg-brand-accent hover:bg-brand-accent/90 h-14 px-12 rounded-2xl shadow-2xl shadow-brand-accent/20 transition-all font-black uppercase tracking-widest text-xs group"
+                className="bg-slate-900 hover:bg-brand-accent h-16 px-12 rounded-2xl shadow-xl shadow-slate-900/10 transition-all font-black uppercase tracking-widest text-xs group text-white"
               >
-                Assemble Future <ArrowRight className="ml-3 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                Show My Career Paths <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-2 transition-transform" />
               </Button>
             )}
           </div>
